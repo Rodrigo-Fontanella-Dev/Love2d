@@ -49,12 +49,7 @@ local anim_shake_active = false
 local scale_factor_w = windowWidth / window_size_w
 local scale_factor_h = windowHeight / window_size_h
 
-
-
 function scene.load()
-
-	
-
 
 	Font = love.graphics.newFont("data/fonts/robot.otf", 30)
 	Font_small = love.graphics.newFont("data/fonts/robot.otf", 15)
@@ -73,10 +68,10 @@ function scene.load()
 	table.insert(objects, Player)
 
 	--Creation of Enemies
-	for e = 1, 1 do
-		Enemy = Enemy()
-		table.insert(objects, Enemy)
-		table.insert(enemy_group, Enemy)
+	for e = 1, 5 do
+		local enemy = Enemy()
+		table.insert(objects, enemy)
+		table.insert(enemy_group, enemy)
 	end
 
 	--Creation of Trees
@@ -144,9 +139,11 @@ function scene.update(dt)
 			return a.y < b.y
 		end)
 
-		-- Shift enemies when player moves
+		-- Shift enemies when player moves and detect player position
 		for i, enemy in ipairs(enemy_group) do
 			enemy:shift(Player.speed, Player.move_x, Player.move_y)
+			enemy.player_position[0] = Player.x
+			enemy.player_position[1] = Player.y
 		end
 
 		-- Shift shot when player moves
@@ -167,7 +164,7 @@ function scene.update(dt)
 				table.remove(shot_group, i)
 			end
 		end
-
+		-- If Shot is not active, remove from group Objects
 		for s, _shot in ipairs(objects) do
 			if _shot.active == false then
 				table.remove(objects, s)
@@ -179,7 +176,33 @@ function scene.update(dt)
 			for s, player_shot in ipairs(shot_group) do
 				--print(shot)
 				if Detect_collision(enemy.body_collision_area, player_shot.shot_collision_area) then
-					print("acertou inimigo")
+					--print("acertou inimigo")
+					player_shot.active = false
+					table.remove(shot_group, s)
+					enemy.hurt = true
+				end
+			end
+		end
+
+		--If Enemy Dies remove it from enemy_group
+		for i, enemy in ipairs(enemy_group) do
+			if enemy.active == false then
+				table.remove(enemy_group, i)
+			end
+		end
+
+		--Remove enemy from objects if not active
+		for e, enemy in ipairs(objects) do
+			if enemy.active == false then
+				table.remove(objects, e)
+			end
+		end
+
+		--Shot Hit Tree
+		for t, tree in ipairs(tree_group) do
+			for s, player_shot in ipairs(shot_group) do
+				if Detect_collision(tree.body_collision_area, player_shot.shot_collision_area) then
+					--print("acertou arvore")
 					player_shot.active = false
 					table.remove(shot_group, s)
 				end
@@ -188,20 +211,22 @@ function scene.update(dt)
 
 		-- Enemy Collision with player (Only Ground collision Rectangle)
 		for e, enemy in ipairs(enemy_group) do
-			collision_enemy = Detect_collision(Player.collision_area, enemy.collision_area)
-			if collision_enemy then
-				Player.hurt = true
-				Player.psystem_blood:update(dt)
-				Player.psystem_blood:emit(32)
-				--print("Collision:", Player.hurt)
-			else
-				Player.hurt = false
-				--Player.psystem_blood:stop()
-				--print("Collision:", Player.hurt)
+			if enemy.dead == false then
+				collision_enemy = Detect_collision(Player.collision_area, enemy.collision_area)
+				if collision_enemy then
+					Player.hurt = true
+					Player.psystem_blood:update(dt)
+					Player.psystem_blood:emit(32)
+					--print("Collision:", Player.hurt)
+				else
+					Player.hurt = false
+					--Player.psystem_blood:stop()
+					--print("Collision:", Player.hurt)
+				end
 			end
 		end
 
-		-- Send player positio to the shaders file
+		-- Send player positionto the shaders file
 		shaders.light:send("playerPosition", {Player.x, Player.y})
 
 		if anim_shake_active then
@@ -246,6 +271,11 @@ function scene.draw()
 	--Circle Weapon Range of player
 	love.graphics.setColor(1, 0, 0, 0.2)
 	love.graphics.circle("line", Player.x, Player.y, Player.weapon.range, 30)
+	love.graphics.setColor(1, 1, 1, 1)
+
+	--Circle start shot
+	love.graphics.setColor(0, 0, 1, 0.2)
+	love.graphics.circle("line", Player.x, Player.y, 20, 30)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	--Line test of sight of player
@@ -336,18 +366,27 @@ function love.mousepressed(x, y, button, istouch)
 	--print(x, y, button)
 	if button == 1 then
 		basic_shot:stop()
-   		--print("tiro")
-   		-- Make a player instance	
+
+   		-- Make a Shot instance	
 		shot = Shot()
-		-- Center shot in Player Position
-		shot.x = window_size_w / 2
-		shot.y = window_size_h / 2
+
+		--Calculate de Start Point of the shot
+		start_pointX = window_size_w / 2 + 20 * math.cos(angle_shot)
+		start_pointY = window_size_h / 2 + 20 * math.sin(angle_shot)
+		--print(start_pointX, start_pointY)
+		--shot.x_ini = start_pointX
+		--shot.y_ini = start_pointY
+		shot.x_ini = window_size_w / 2
+		shot.y_ini = window_size_h / 2
+		shot.x = start_pointX
+		shot.y = start_pointY	
 		shot.speed = Player.weapon.speed
 		table.insert(objects, shot)
 		table.insert(shot_group, shot)
 		shot:start(angle_shot, shot_direction)
 		basic_shot:play()
    	end
+
    	if button == 2 then
    		--print("garra")
    	end

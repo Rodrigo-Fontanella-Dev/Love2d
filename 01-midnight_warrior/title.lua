@@ -10,62 +10,61 @@ function scene.modify(flags)
 end
 love.graphics.setDefaultFilter("nearest", "nearest")
 --love.graphics.setDefaultFilter("linear", "linear")
+
+local rollover_intro = false
+local rollover_game = false
+local rollover_options = false
+local rollover_exit = false
+
+local mouse = {}
+
+local anim_y = 300
+local anim_speed = 300
+local unlock_buttons = false
+
+local rollover_timer = 0
+
+local button_rollover_sound = love.audio.newSource("data/sfx/effects/button_rollover.wav", "static")
+local button_select_sound = love.audio.newSource("data/sfx/effects/mouse_select.wav", "static")
+
+local scale_factor_w = windowWidth / window_size_w
+local scale_factor_h = windowHeight / window_size_h
+
+local logo = love.graphics.newImage("/data/images/screens/midnight_warrior_logo_640x640.png")
+local background_screen = love.graphics.newImage("/data/images/screens/title_screen_background_800x600.png")
+
+local button_hightlight = love.graphics.newImage("/data/images/buttons/button_highlight.png")
+
+local button_intro = love.graphics.newImage("/data/images/buttons/button_intro.png")
+local button_intro_off = love.graphics.newImage("/data/images/buttons/button_intro_off.png")
+local button_intro_w = button_intro:getWidth()
+local button_intro_h = button_intro:getHeight()
+local button_intro_x = window_size_w / 2 - button_intro_w / 2
+local button_intro_y = window_size_h / 2 + 80
+
+local button_game = love.graphics.newImage("/data/images/buttons/button_game.png")
+local button_game_off = love.graphics.newImage("/data/images/buttons/button_game_off.png")
+local button_game_w = button_intro:getWidth()
+local button_game_h = button_intro:getHeight()
+local button_game_x = button_intro_x
+local button_game_y = button_intro_y + button_game_h / 2 + 30
+
+local button_options = love.graphics.newImage("/data/images/buttons/button_options.png")
+local button_options_off = love.graphics.newImage("/data/images/buttons/button_options_off.png")
+local button_options_w = button_intro:getWidth()
+local button_options_h = button_intro:getHeight()
+local button_options_x = button_game_x
+local button_options_y = button_game_y + button_options_h / 2 + 30
+
+local button_exit = love.graphics.newImage("/data/images/buttons/button_exit.png")
+local button_exit_off = love.graphics.newImage("/data/images/buttons/button_exit_off.png")
+local button_exit_w = button_intro:getWidth()
+local button_exit_h = button_intro:getHeight()
+local button_exit_x = button_options_x	
+local button_exit_y = button_options_y + button_exit_h / 2 + 30
+
 function scene.load()
-	mouse = {}
 
-	anim_y = 300
-	anim_speed = 300
-	unlock_buttons = false
-
-	rollover_timer = 0
-
-	button_rollover_sound = love.audio.newSource("data/sfx/effects/button_rollover.wav", "static")
-	button_select_sound = love.audio.newSource("data/sfx/effects/mouse_select.wav", "static")
-
-	scale_factor_w = windowWidth / window_size_w
-	scale_factor_h = windowHeight / window_size_h
-
-	-- scale_factor_w = 1
-	-- scale_factor_h = 1
-	
-
-	logo = love.graphics.newImage("/data/images/screens/midnight_warrior_logo_640x640.png")
-	background_screen = love.graphics.newImage("/data/images/screens/title_screen_background_800x600.png")
-
-	button_hightlight = love.graphics.newImage("/data/images/buttons/button_highlight.png")
-
-	button_intro = love.graphics.newImage("/data/images/buttons/button_intro.png")
-	button_intro_off = love.graphics.newImage("/data/images/buttons/button_intro_off.png")
-	button_intro_w = button_intro:getWidth()
-	button_intro_h = button_intro:getHeight()
-	button_intro_x = window_size_w / 2 - button_intro_w / 2
-	button_intro_y = window_size_h / 2 + 80
-	
-	button_game = love.graphics.newImage("/data/images/buttons/button_game.png")
-	button_game_off = love.graphics.newImage("/data/images/buttons/button_game_off.png")
-	button_game_w = button_intro:getWidth()
-	button_game_h = button_intro:getHeight()
-	button_game_x = button_intro_x
-	button_game_y = button_intro_y + button_game_h / 2 + 30
-
-	button_options = love.graphics.newImage("/data/images/buttons/button_options.png")
-	button_options_off = love.graphics.newImage("/data/images/buttons/button_options_off.png")
-	button_options_w = button_intro:getWidth()
-	button_options_h = button_intro:getHeight()
-	button_options_x = button_game_x
-	button_options_y = button_game_y + button_options_h / 2 + 30
-
-	button_exit = love.graphics.newImage("/data/images/buttons/button_exit.png")
-	button_exit_off = love.graphics.newImage("/data/images/buttons/button_exit_off.png")
-	button_exit_w = button_intro:getWidth()
-	button_exit_h = button_intro:getHeight()
-	button_exit_x = button_options_x	
-	button_exit_y = button_options_y + button_exit_h / 2 + 30
-
-	rollover_intro = false
-	rollover_game = false
-	rollover_options = false
-	rollover_exit = false
 end
 
 function scene.update(dt)
@@ -85,7 +84,7 @@ function scene.update(dt)
 	mouse[0], mouse[1] = love.mouse.getPosition()
 	--print(mouse[0], mouse[1])
 
-	mouse_click = love.mouse.isDown(1)
+	local mouse_click = love.mouse.isDown(1)
 	
 	if unlock_buttons then
 		if button_intro_x * scale_factor_w < mouse[0] and mouse[0] < button_intro_x * scale_factor_w + button_intro_w then
@@ -183,7 +182,7 @@ function scene.draw()
 	else
 		love.graphics.draw(button_intro_off, button_intro_x, button_intro_y + anim_y)
 	end
-	
+
 	if rollover_game then
 		--love.graphics.rectangle("line", button_game_x, button_game_y, button_game_w, button_game_h)
 		love.graphics.draw(button_hightlight, button_game_x, button_game_y + anim_y)

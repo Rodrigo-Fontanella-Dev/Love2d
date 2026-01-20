@@ -11,19 +11,20 @@ end
 --love.graphics.setDefaultFilter("nearest", "nearest")
 love.graphics.setDefaultFilter("linear", "linear")
 
-function scene.load()
-	timer = 0
-	timer_speed = 1
-	scale = 0.2
-	scale_speed = 0.1
-	alpha_speed = 0.2
-	alpha = 0
+local scale = 0.2
+local scale_speed = 0.1
+local alpha_speed = 0.2
+local alpha = 0
+local timer = 0
+local timer_speed = 1
+local logo = love.graphics.newImage("/data/images/game_axe/game_axe.png")
 
-	logo = love.graphics.newImage("/data/images/game_axe/game_axe.png")
-	logo_w = logo:getWidth()
-	logo_h = logo:getHeight()
-	logo_x = window_size_w / 2 - logo_w / 2
-	logo_y = window_size_h / 2 - logo_h / 2 - 20
+function scene.load()
+	
+	local logo_w = logo:getWidth()
+	local logo_h = logo:getHeight()
+	local logo_x = window_size_w / 2 - logo_w / 2
+	local logo_y = window_size_h / 2 - logo_h / 2 - 20
 end
 
 function scene.update(dt)

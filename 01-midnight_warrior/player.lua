@@ -74,5 +74,8 @@ function Player.update(self, dt)
 end
 
 function Player.draw(self)
+	local mx, my = love.mouse.getPosition()
+	--print(mx, my)
+
 	local collision_rect = love.graphics.rectangle("line", self.collision_area.x, self.collision_area.y, self.collision_area.width, self.collision_area.height)
 end

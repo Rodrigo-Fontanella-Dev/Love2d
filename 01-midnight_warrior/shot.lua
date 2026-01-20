@@ -6,12 +6,11 @@ function Shot.new(self)
 	self.image = love.graphics.newImage("data/images/shot/basic_shot.png")
 	self.x = 0
 	self.y = 0
-	self.x_ini = 400
-	self.y_ini = 300
+	self.x_ini = 0
+	self.y_ini = 0
 	self.speed = 0
 	self.size_w = self.image:getWidth()
 	self.size_h = self.image:getHeight()
-	--print(self.size_w, self.size_h)
 	self.move_x = 0
 	self.move_y = 0
 	self.angle = 0
@@ -35,9 +34,8 @@ function Shot.update(self, dt)
 
 	self.shot_collision_area.x = self.x - self.size_w / 2
 	self.shot_collision_area.y = self.y - self.size_h / 2 - 1
-
-	--print(self.x, self.y, self.x_ini, self.y_ini)
-	self:calculateDistance(self.x, self.y, self.x_ini, self.y_ini)
+	--print(self.x_ini, self.y_ini, self.x, self.y)
+	self:calculateDistance(self.x_ini, self.y_ini, self.x, self.y)
 end
 
 function Shot.draw(self)
