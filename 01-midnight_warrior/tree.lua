@@ -50,7 +50,7 @@ function Tree.draw(self, screen_shift_x, screen_shift_y)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	love.graphics.setColor(0, 1, 0, 1)
-	collision_body_rect = love.graphics.rectangle("line", self.body_collision_area.x , self.body_collision_area.y, self.body_collision_area.width, self.body_collision_area.height)
+	local collision_body_rect = love.graphics.rectangle("line", self.body_collision_area.x , self.body_collision_area.y, self.body_collision_area.width, self.body_collision_area.height)
 	love.graphics.setColor(1, 1, 1, 1)
 
 end

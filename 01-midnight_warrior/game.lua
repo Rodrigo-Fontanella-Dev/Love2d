@@ -19,6 +19,8 @@ require "enemy"
 require "player"
 require "tree"
 require "shot"
+require "power_up"
+
 local shaders = require("shaders")
 
 local objects = {}
@@ -30,18 +32,22 @@ local shot = {}
 local shot_group = {}
 local enemy_group = {}
 local tree_group = {}
+local power_up_group = {}
 local offset = {}
 local game_paused = false
 
 local collision_enemy = false
 local basic_shot = love.audio.newSource("data/sfx/effects/shot.wav", "static")
+local enemy_hurt = love.audio.newSource("data/sfx/effects/hurt.wav", "static")
+local powerup = love.audio.newSource("data/sfx/effects/powerup.wav", "static")
+local powerup_type = {"player_life", "player_speed", "weapon_type", "bullet_speed", "bullet_power"}
+
 local shake_render_offset = {}
 shake_render_offset[0] = 0
 shake_render_offset[1] = 0
 
-local anim_shake_active = false
-local shake_timer = 500
-local shake_intensity = 500
+local game_paused_img = love.graphics.newImage("data/images/ui/game_paused.png")
+
 local shake_timer = 1000
 local shake_intensity = 10000
 local anim_shake_active = false
@@ -49,9 +55,11 @@ local anim_shake_active = false
 local scale_factor_w = windowWidth / window_size_w
 local scale_factor_h = windowHeight / window_size_h
 
+local game_clock = 0
+
 function scene.load()
 
-	Font = love.graphics.newFont("data/fonts/robot.otf", 30)
+	Font = love.graphics.newFont("data/fonts/robot.otf", 20)
 	Font_small = love.graphics.newFont("data/fonts/robot.otf", 15)
 
 	Paused_on_sound = love.audio.newSource("data/sfx/effects/pause_on.wav", "static")
@@ -67,7 +75,7 @@ function scene.load()
 	Player.y = window_size_h / 2
 	table.insert(objects, Player)
 
-	--Creation of Enemies
+	--Start Creation of Enemies
 	for e = 1, 5 do
 		local enemy = Enemy()
 		table.insert(objects, enemy)
@@ -79,6 +87,15 @@ function scene.load()
 		local tree = Tree()
 		table.insert(objects, tree)
 		table.insert(tree_group, tree)
+	end
+
+	--Creation of PowerUps
+	for p = 1, 5 do
+		local power_up = PowerUp()
+		power_up.type = powerup_type[love.math.random(1, #powerup_type)]
+		print(power_up.type)
+		table.insert(objects, power_up)
+		table.insert(power_up_group, power_up)
 	end
 
 	Map = love.graphics.newImage("data/maps/map01.png")
@@ -103,6 +120,9 @@ end
 
 function scene.update(dt)
 	if not game_paused then
+		--Start Game Timer
+		game_clock = game_clock + dt
+
 		mouse[0], mouse[1] = love.mouse.getPosition()
 		--print(mouse[0], mouse[1])
 
@@ -156,6 +176,11 @@ function scene.update(dt)
 			tree:shift(Player.speed, Player.move_x, Player.move_y)
 		end
 
+		-- Shift PowerUps when player moves
+		for p, power_up in ipairs(power_up_group) do
+			power_up:shift(Player.speed, Player.move_x, Player.move_y)
+		end
+
 		-- SHOT DETECTION --------------------------------------
 		-- Shot out of range
 		for i, _shot in ipairs(shot_group) do
@@ -180,6 +205,7 @@ function scene.update(dt)
 					player_shot.active = false
 					table.remove(shot_group, s)
 					enemy.hurt = true
+					enemy_hurt:play()
 				end
 			end
 		end
@@ -188,6 +214,7 @@ function scene.update(dt)
 		for i, enemy in ipairs(enemy_group) do
 			if enemy.active == false then
 				table.remove(enemy_group, i)
+				Player.kills = Player.kills + 1
 			end
 		end
 
@@ -195,6 +222,7 @@ function scene.update(dt)
 		for e, enemy in ipairs(objects) do
 			if enemy.active == false then
 				table.remove(objects, e)
+				-- Add 1 Kill to Player Kills Counter			
 			end
 		end
 
@@ -215,8 +243,13 @@ function scene.update(dt)
 				collision_enemy = Detect_collision(Player.collision_area, enemy.collision_area)
 				if collision_enemy then
 					Player.hurt = true
-					Player.psystem_blood:update(dt)
-					Player.psystem_blood:emit(32)
+					Player.life = Player.life - 0.01
+					if Player.life < 0 then
+						Player.life = 0
+						Player.dead = true
+					end
+					--Player.psystem_blood:update(dt)
+					--Player.psystem_blood:emit(32)
 					--print("Collision:", Player.hurt)
 				else
 					Player.hurt = false
@@ -226,7 +259,26 @@ function scene.update(dt)
 			end
 		end
 
-		-- Send player positionto the shaders file
+		--Powerup Collision with player
+		for p, power_up in ipairs(power_up_group) do
+			if Detect_collision(Player.collision_area, power_up.collision_area) then
+				print("PowerUp Collected:", power_up.type)
+				powerup:play()
+				power_up.active = false
+				--Remove PowerUp from groups
+				table.remove(power_up_group, p)
+				for pu, obj in ipairs(objects) do
+					if obj == power_up then
+						if power_up.active == false then
+							print("Removing PowerUp from objects")
+							table.remove(objects, pu)
+						end
+					end
+				end
+			end
+		end
+
+		-- Send player position to the shaders file
 		shaders.light:send("playerPosition", {Player.x, Player.y})
 
 		if anim_shake_active then
@@ -239,7 +291,13 @@ function scene.update(dt)
 end
 
 function scene.draw()
+	--Push library starting
 	push:start()
+
+	--Shader Grayscale START if PAUSED
+	if game_paused then
+		love.graphics.setShader(shaders.greyscale)
+	end
 
 	local mx, my = love.mouse.getPosition()
 	local mouse_x = mx / scale_factor_w
@@ -283,24 +341,56 @@ function scene.draw()
 	love.graphics.line(window_size_w / 2, window_size_h / 2, mouse_x, mouse_y)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	if game_paused then
-		love.graphics.setColor(1, 1, 0, 1)
-		love.graphics.setFont(Font)
-        love.graphics.print("PAUSED", window_size_w / 2 - 50, window_size_h / 2)
-        love.graphics.setColor(1, 1, 1, 1)
-    end
-
     --Draw Rectangle Shake effect Test
     love.graphics.rectangle("fill", 100 + shake_render_offset[0], 100 + shake_render_offset[1], 50, 50)
 
+	if game_paused then
+		love.graphics.draw(game_paused_img, window_size_w / 2 - game_paused_img:getWidth() / 2, window_size_h / 2 + 20)
+    end
+
+	-- UI Elements  --------------------------------------
+	-- Draws the actual image and weapon name
+	love.graphics.setFont(Font_small)
+	love.graphics.print(Player.weapon.name, 10, window_size_h - 50)
+	love.graphics.draw(Player.weapon.image, 40, window_size_h - 90)
+
+	-- Draws Energy Bar
+	local bar_size_w = 650
+
+	love.graphics.setFont(Font_small)
+	love.graphics.print("Life", 10, window_size_h - 592)
+
+	love.graphics.setColor(0, 0, 0, 0.5)
+	love.graphics.rectangle("fill", 45, window_size_h - 585, bar_size_w, 5)
+	love.graphics.setColor(1, 1, 1, 1)
+
+	love.graphics.setColor(1, 0, 0, 0.6)
+	love.graphics.rectangle("fill", 45, window_size_h - 585, bar_size_w * (Player.life / Player.life_total), 5)
+	love.graphics.setColor(1, 1, 1, 1)
+
+	love.graphics.setColor(0, 0, 0, 0.5)
+	love.graphics.rectangle("fill", 45, window_size_h - 572, bar_size_w, 5)
+	love.graphics.setColor(1, 1, 1, 1)
+
+	love.graphics.print("Rage", 10, window_size_h - 578)
+	love.graphics.setColor(0.6, 0, 1, 0.6)
+	love.graphics.rectangle("fill", 45, window_size_h - 572, bar_size_w * (Player.rage / Player.rage_total), 5)
+	love.graphics.setColor(1, 1, 1, 1)
+
+	--love.graphics.print("Time "..game_clock, 740, window_size_h - 590)
+	love.graphics.print("Time: " .. FormatTime(game_clock), 715, window_size_h - 592)
+	love.graphics.print("Kills "..Player.kills, 715, window_size_h - 578)
+
+	--Push library finished
     push:finish()
 
-	-- Draws the actual image and weapon name
-	love.graphics.setFont(Font)
-	love.graphics.print(Player.weapon.name, 50, windowHeight - 120)
-	love.graphics.draw(Player.weapon.image, 5, windowHeight - 100)
+	--Shader Gray END
+	if game_paused then
+		love.graphics.setShader()
+	end
 
-    Fps_counter()
+	-- FPS Counter
+	Fps_counter()
 end
 
 function Fps_counter()
@@ -308,7 +398,7 @@ function Fps_counter()
 		--print(fps)
 		love.graphics.setColor(1, 1, 1, 1)
 		love.graphics.setFont(Font_small)
-		love.graphics.print("FPS: " .. tostring(Fps), windowWidth - 80, windowHeight - 40)
+		love.graphics.print("FPS: " .. tostring(Fps), windowWidth - 90, windowHeight - 40)
 		love.graphics.setColor(0, 0, 0, 0)
 end
 
@@ -323,6 +413,9 @@ function Collision_rectangles()
 	end
 	for s, player_shot in ipairs(shot_group) do
 		player_shot:draw()
+	end
+	for p, power_up in ipairs(power_up_group) do
+		power_up:draw()
 	end
 end
 
@@ -353,7 +446,7 @@ function love.keypressed(key)
     	if not game_paused then
     		Paused_on_sound:play()
     	end
-        Game_paused = not Game_paused
+        game_paused = not game_paused
     end
 	if key == "l" then
 		shake_timer = 1000
@@ -371,8 +464,8 @@ function love.mousepressed(x, y, button, istouch)
 		shot = Shot()
 
 		--Calculate de Start Point of the shot
-		start_pointX = window_size_w / 2 + 20 * math.cos(angle_shot)
-		start_pointY = window_size_h / 2 + 20 * math.sin(angle_shot)
+		local start_pointX = window_size_w / 2 + 20 * math.cos(angle_shot)
+		local start_pointY = window_size_h / 2 + 20 * math.sin(angle_shot)
 		--print(start_pointX, start_pointY)
 		--shot.x_ini = start_pointX
 		--shot.y_ini = start_pointY
@@ -388,7 +481,11 @@ function love.mousepressed(x, y, button, istouch)
    	end
 
    	if button == 2 then
-   		--print("garra")
+		Player.rage = Player.rage - 1
+		if Player.rage < 0 then
+			Player.rage = 0
+		end
+   		print(Player.rage)
    	end
 end
 
@@ -402,6 +499,14 @@ function Anim_shake(dt)
         anim_shake_active = false
     end
 	return shake_render_offset
+end
+
+function FormatTime(t)
+    local minutes = math.floor(t / 60)
+    local seconds = math.floor(math.fmod(t, 60)) -- Modulo to get remaining seconds
+
+    -- Use string.format to ensure leading zeros for seconds if needed
+    return string.format("%02d:%02d", minutes, seconds)
 end
 
 return scene

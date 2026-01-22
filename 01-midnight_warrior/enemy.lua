@@ -53,7 +53,6 @@ function Enemy.new(self)
 	self.dead = false
 	self.timer_dead = 20
 	self.timer_dead_speed = 10
-
 end
 
 -- Go for Player
@@ -83,7 +82,8 @@ function Enemy.update(self, dt)
 	else
 		self.direction[0] = -1
 	end
-	if self.y - 300 < 0 then
+	-- Um pouco para cima do Player
+	if self.y - 295 < 0 then
 		self.direction[1] = 1
 	else
 		self.direction[1] = -1
