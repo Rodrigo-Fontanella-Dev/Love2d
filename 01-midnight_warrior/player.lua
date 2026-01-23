@@ -36,6 +36,7 @@ function Player.new(self)
 	self.active = true
 	self.life_total = 100
 	self.life = 100
+	-- The rage has 3 charges that can be increased during the game
 	self.rage_total = 3
 	self.rage = 3
 	self.kills = 0
@@ -44,7 +45,6 @@ end
 
 function Player.update(self, dt)
 	if self.dead == false then
-	
 		--print(dt)
 		if love.keyboard.isDown("d") then
 			self.screen_shift_x = self.screen_shift_x + self.speed * dt
@@ -74,7 +74,7 @@ function Player.update(self, dt)
 		end
 
 		self.collision_area.x = self.x - self.size_w / 4 - 2 
-		self.collision_area.y = self.y -2 self.collision_area.x = self.x - self.size_w / 4 - 2 
+		self.collision_area.y = self.y -2 self.collision_area.x = self.x - self.size_w / 4 - 2
 		self.collision_area.y = self.y -2
 	end
 	if love.keyboard.isDown("escape") then
