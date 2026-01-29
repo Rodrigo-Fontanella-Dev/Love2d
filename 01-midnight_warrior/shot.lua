@@ -27,10 +27,10 @@ function Shot.new(self)
 end
 
 function Shot.update(self, dt)
-	-- shot movement test
+	-- shot movement 
 	--       { This block is the move}  {This block is the move correction from player move}	
-	self.x = self.x + math.cos(self.angle) * self.speed * dt  - (self.player_speed * dt) * self.move_x
-	self.y = self.y + math.sin(self.angle) * self.speed * dt  - (self.player_speed * dt) * self.move_y
+	self.x = self.x + math.cos(self.angle) * self.speed * dt--- (self.player_speed * dt) * self.move_x
+	self.y = self.y + math.sin(self.angle) * self.speed * dt -- - (self.player_speed * dt) * self.move_y
 
 	self.shot_collision_area.x = self.x - self.size_w / 2
 	self.shot_collision_area.y = self.y - self.size_h / 2 - 1

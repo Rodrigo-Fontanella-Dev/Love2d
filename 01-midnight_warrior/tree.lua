@@ -26,8 +26,8 @@ end
 
 function Tree.update(self, dt)	
 	-- Tree
-	self.x = self.x - (self.player_speed * dt) * self.move_x
-	self.y = self.y - (self.player_speed * dt) * self.move_y
+	self.x = self.x -- - (self.player_speed * dt) * self.move_x
+	self.y = self.y -- - (self.player_speed * dt) * self.move_y
 
 	self.collision_area.x = self.x - self.size_w / 4 + 20
 	self.collision_area.y = self.y + 8

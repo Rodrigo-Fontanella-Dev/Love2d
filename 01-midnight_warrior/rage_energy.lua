@@ -2,8 +2,8 @@ Rage = Object.extend(Object)
 
 function Rage.new(self)
 	self.image = love.graphics.newImage("data/images/rage_energy/rage_energy.png")
-	self.x = love.math.random(0, 500)
-	self.y = love.math.random(0, 400)
+	self.x = 1
+	self.y = 1
 	self.size_w = self.image:getWidth()
 	self.size_h = self.image:getHeight()
 	self.move_x = 0
@@ -18,19 +18,11 @@ function Rage.new(self)
 end
 
 function Rage.update(self, dt)
-
-	self.x = self.x - (self.player_speed * dt) * self.move_x
-	self.y = self.y - (self.player_speed * dt) * self.move_y
+	self.x = self.x
+	self.y = self.y
 
 	self.collision_area.x = self.x - self.size_w / 2 + 3
 	self.collision_area.y = self.y - self.size_h / 2 - 4
-end
-
-function Rage:shift(player_speed, move_x, move_y)
-	--print(player_speed, move_x, move_y)
-	self.move_x = move_x
-	self.move_y = move_y
-	self.player_speed = player_speed
 end
 
 function Rage.draw(self, screen_shift_x, screen_shift_y)

@@ -1,10 +1,6 @@
 local scene = {}
 
-local push = require "data.libraries.push"
-local window_size_w, window_size_h = 800,600 --fixed game resolution
-local windowWidth, windowHeight = love.window.getDesktopDimensions()
-windowWidth, windowHeight = windowWidth*.6, windowHeight*.8 --make the window a bit smaller than the screen itself
-push:setupScreen(window_size_w, window_size_h, windowWidth, windowHeight)
+local window_size_w, window_size_h = 1280,720 --fixed game resolution
 
 function scene.modify(flags)
 end
@@ -18,7 +14,7 @@ local rollover_exit = false
 
 local mouse = {}
 
-local anim_y = 300
+local anim_y = 400
 local anim_speed = 300
 local unlock_buttons = false
 
@@ -27,11 +23,11 @@ local rollover_timer = 0
 local button_rollover_sound = love.audio.newSource("data/sfx/effects/button_rollover.wav", "static")
 local button_select_sound = love.audio.newSource("data/sfx/effects/mouse_select.wav", "static")
 
-local scale_factor_w = windowWidth / window_size_w
-local scale_factor_h = windowHeight / window_size_h
+local scale_factor_w = 1
+local scale_factor_h = 1
 
 local logo = love.graphics.newImage("/data/images/screens/midnight_warrior_logo_640x640.png")
-local background_screen = love.graphics.newImage("/data/images/screens/title_screen_background_800x600.png")
+local background_screen = love.graphics.newImage("/data/images/screens/title_screen_background_1280x720.png")
 
 local button_hightlight = love.graphics.newImage("/data/images/buttons/button_highlight.png")
 
@@ -69,15 +65,14 @@ end
 
 function scene.update(dt)
 	--print(windowWidth, windowHeight)
-	
 	if love.keyboard.isDown("escape") then
-		button_selected()
+		Button_selected()
 		love.window.close()
 		love.event.quit()
 	end
 
 	if love.keyboard.isDown("return") then
-		button_selected()
+		Button_selected()
 		SM.load("game")
 	end
 
@@ -85,28 +80,28 @@ function scene.update(dt)
 	--print(mouse[0], mouse[1])
 
 	local mouse_click = love.mouse.isDown(1)
-	
+
 	if unlock_buttons then
 		if button_intro_x * scale_factor_w < mouse[0] and mouse[0] < button_intro_x * scale_factor_w + button_intro_w then
-			if button_intro_y * scale_factor_h < mouse[1] and mouse[1] < button_intro_y * scale_factor_h + button_intro_h then
-				rollover_intro = true  
+			if button_intro_y * scale_factor_h < mouse[1] - anim_y and mouse[1] < button_intro_y * scale_factor_h + button_intro_h + anim_y then
+				rollover_intro = true
 			else
-				rollover_intro = false	
+				rollover_intro = false
 			end
 		else
 			rollover_intro = false
 		end
 		if button_game_x * scale_factor_w < mouse[0] and mouse[0] < button_game_x * scale_factor_w + button_game_w then
-			if button_game_y * scale_factor_h < mouse[1] and mouse[1] < button_game_y * scale_factor_h + button_game_h then
+			if button_game_y * scale_factor_h < mouse[1] - anim_y and mouse[1] < button_game_y * scale_factor_h + button_game_h + anim_y then
 				rollover_game = true
 			else
 				rollover_game = false
 			end
 		else
-			rollover_game = false  
+			rollover_game = false
 		end
 		if button_options_x * scale_factor_w < mouse[0] and mouse[0] < button_options_x * scale_factor_w + button_options_w then
-			if button_options_y * scale_factor_h < mouse[1] and mouse[1] < button_options_y * scale_factor_h + button_options_h then
+			if button_options_y * scale_factor_h < mouse[1] - anim_y and mouse[1] < button_options_y * scale_factor_h + button_options_h + anim_y then
 				rollover_options = true
 			else
 				rollover_options = false
@@ -115,13 +110,13 @@ function scene.update(dt)
 			rollover_options = false
 		end
 		if button_exit_x * scale_factor_w < mouse[0] and mouse[0] < button_exit_x * scale_factor_w + button_exit_w then
-			if button_exit_y * scale_factor_h < mouse[1] and mouse[1] < button_exit_y * scale_factor_h + button_exit_h then
+			if button_exit_y * scale_factor_h < mouse[1] - anim_y and mouse[1] < button_exit_y * scale_factor_h + button_exit_h + anim_y then
 				rollover_exit = true
 			else
-				rollover_exit = false 
+				rollover_exit = false
 			end
 		else
-			rollover_exit = false 
+			rollover_exit = false
 		end
 
 		--print(rollover_timer)
@@ -129,7 +124,7 @@ function scene.update(dt)
 		if rollover_intro or rollover_game or rollover_options or rollover_exit then
 			rollover_timer = rollover_timer + 1
 			if rollover_timer == 1 then
-				play_sound_rollover()
+				Play_sound_rollover()
 			end
 		else
 			rollover_timer = 0
@@ -142,7 +137,7 @@ function scene.update(dt)
 		end
 		if rollover_game then
 			if mouse_click then
-				button_selected()
+				Button_selected()
 				SM.load("game")
 			end
 		end
@@ -152,23 +147,22 @@ function scene.update(dt)
 		end
 		if rollover_exit then
 			if mouse_click then
-				button_selected()
+				Button_selected()
 				love.window.close()
 				love.event.quit()
 			end
 		end
 	end
 
-	if anim_y > 0 then
+	if anim_y > 50 then
 		anim_y = anim_y - anim_speed * dt
 	else
-		anim_y = 0
+		anim_y = 50
 		unlock_buttons = true
 	end
 end
 
 function scene.draw()
-	push:start()
 
 	love.graphics.draw(background_screen, 0, 0)
 	love.graphics.draw(logo, 0, -50, 0, 0.6, 0.6)
@@ -177,7 +171,7 @@ function scene.draw()
 		-- love.graphics.setColor(0, 0.5, 0, 1)
 		-- love.graphics.rectangle("line",button_intro_x, button_intro_y, button_intro_w, button_intro_h)
 		-- love.graphics.setColor(1, 1, 1, 1)
-		love.graphics.draw(button_hightlight, button_intro_x, button_intro_y + anim_y)		
+		love.graphics.draw(button_hightlight, button_intro_x, button_intro_y + anim_y)
 		love.graphics.draw(button_intro, button_intro_x, button_intro_y + anim_y)
 	else
 		love.graphics.draw(button_intro_off, button_intro_x, button_intro_y + anim_y)
@@ -206,14 +200,14 @@ function scene.draw()
 	else
 		love.graphics.draw(button_exit_off, button_exit_x, button_exit_y + anim_y)
 	end
-	push:finish()
+
 end
 
-function play_sound_rollover()
+function Play_sound_rollover()
 	button_rollover_sound:play()
 end
 
-function button_selected()
+function Button_selected()
 	button_select_sound:play()
 end
 

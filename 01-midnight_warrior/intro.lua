@@ -1,10 +1,6 @@
 local scene = {}
 
-local push = require "data.libraries.push"
-local window_size_w, window_size_h = 800,600 --fixed game resolution
-local windowWidth, windowHeight = love.window.getDesktopDimensions()
-windowWidth, windowHeight = windowWidth*.6, windowHeight*.8 --make the window a bit smaller than the screen itself
-push:setupScreen(window_size_w, window_size_h, windowWidth, windowHeight)
+local window_size_w, window_size_h = 1280,720 --fixed game resolution
 
 function scene.modify(flags)
 end
@@ -18,13 +14,13 @@ local alpha = 0
 local timer = 0
 local timer_speed = 1
 local logo = love.graphics.newImage("/data/images/game_axe/game_axe.png")
+local logo_w = logo:getWidth()
+local logo_h = logo:getHeight()
+local logo_x = logo_w / 2
+local logo_y = logo_h / 2
 
 function scene.load()
-	
-	local logo_w = logo:getWidth()
-	local logo_h = logo:getHeight()
-	local logo_x = window_size_w / 2 - logo_w / 2
-	local logo_y = window_size_h / 2 - logo_h / 2 - 20
+	--print(window_size_w, window_size_h,logo_x, logo_y, logo_w, logo_h)
 end
 
 function scene.update(dt)
@@ -44,6 +40,8 @@ function scene.update(dt)
 	else
 		scale = scale + scale_speed * dt
 		scale = scale + scale_speed * dt
+		logo_x = (logo_w * scale) / 2
+		logo_y = (logo_h * scale) / 2
 	end
 
 	if alpha >= 1 then
@@ -62,15 +60,10 @@ function scene.update(dt)
 end
 
 function scene.draw()
-	push:start()
-
 	love.graphics.setColor(0, 0, 0, 0) -- Set color to black for background
     love.graphics.rectangle("fill", 0, 0, window_size_w, window_size_h)
-
 	love.graphics.setColor(1, 1, 1, alpha)
-	love.graphics.draw(logo, window_size_w / 2, window_size_h / 2 - 20, 0, scale, scale, logo:getWidth() / 2, logo:getHeight() / 2)
-
-	push:finish()
+	love.graphics.draw(logo,window_size_w / 2 + logo_x, window_size_h / 2 + logo_y -20, 0, scale, scale, logo_w, logo_h)
 end
 
 return scene

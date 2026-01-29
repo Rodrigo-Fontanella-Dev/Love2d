@@ -2,6 +2,7 @@ Enemy = Object.extend(Object)
 
 local collision_rect = {}
 local collision_body_rect = {}
+local window_size_w, window_size_h = 1280,720 --fixed game resolution
 
 function Enemy.new(self)
 	self.enemy = "enemy"
@@ -31,6 +32,8 @@ function Enemy.new(self)
 		height = self.size_h
 	}
 	self.player_position = {}
+	self.player_position[0] = 0
+	self.player_position[1] = 0
 	self.active = true
 	self.hurt = false
 	self.energy = 5
@@ -60,8 +63,8 @@ function Enemy.update(self, dt)
 	
 	-- Enemy movement test
 	--       { This block is the move}  {This block is the move correction from player move}	
-	self.x = self.x + self.speed * self.direction[0] * dt - (self.player_speed * dt) * self.move_x
-	self.y = self.y + self.speed * self.direction[1] * dt - (self.player_speed * dt) * self.move_y
+	self.x = self.x + self.speed * self.direction[0] * dt -- self.player_position[0] * dt
+	self.y = self.y + self.speed * self.direction[1] * dt -- self.player_position[1] * dt
 
 	--Update Collision Areas
 	self.collision_area.x = self.x - self.size_w / 4 - 3 
@@ -77,13 +80,14 @@ function Enemy.update(self, dt)
 	self.energy_bar_background_rect.x = self.energy_bar_rect[0] - 1
 	self.energy_bar_background_rect.y = self.energy_bar_rect[1] - 1
 
-	if self.x - 400 < 0 then
+	if self.x - self.player_position[0] < 0 then
 		self.direction[0] = 1
 	else
 		self.direction[0] = -1
 	end
+
 	-- Um pouco para cima do Player
-	if self.y - 295 < 0 then
+	if self.y - self.player_position[1] + 3 < 0 then
 		self.direction[1] = 1
 	else
 		self.direction[1] = -1
