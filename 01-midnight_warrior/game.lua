@@ -1,6 +1,6 @@
 local scene = {}
 
-local window_size_w, window_size_h = 1280,720 --fixed game resolution
+local window_size_w, window_size_h = 960,720 --fixed game resolution
 
 function scene.modify(flags)
 end
@@ -11,12 +11,16 @@ love.graphics.setDefaultFilter("nearest", "nearest")
 -- Library to create classes
 Object = require "data/libraries/classic"
 Camera = require "data/libraries/camera"
+-- Bump = require "data/libraries/bump"
+
+-- World = Bump.newWorld()
+
 require "enemy"
 require "player"
 require "tree"
 require "shot"
 require "power_up"
-require "rage_energy"
+require "void_energy"
 
 local weapons = require "weapons"
 
@@ -33,35 +37,26 @@ local shot_group = {}
 local enemy_group = {}
 local tree_group = {}
 local power_up_group = {}
-local rage_energy_group = {}
+local void_energy_group = {}
 local offset = {}
 local game_paused = false
 
 local collision_enemy = false
+local collision_tree = false
+local collision_tree2 = false
 local basic_shot = love.audio.newSource("data/sfx/effects/shot.wav", "static")
 local enemy_hurt = love.audio.newSource("data/sfx/effects/hurt.wav", "static")
 local powerup = love.audio.newSource("data/sfx/effects/powerup.wav", "static")
 local powerup_type = {"player_life", "player_speed", "weapon_type", "bullet_speed", "bullet_power"}
 
-local shake_render_offset = {}
-shake_render_offset[0] = 0
-shake_render_offset[1] = 0
-
 local game_paused_img = love.graphics.newImage("data/images/ui/game_paused.png")
-
-local shake_timer = 1000
-local shake_intensity = 10000
-local anim_shake_active = false
 
 local shakeDuration = 0 -- How long the shake lasts
 local shakeMagnitude = 0 -- How intense the shake is (pixels)
 local shakeTimer = 0 -- Internal timer for the shake
 
-local scale_factor_w = 1
-local scale_factor_h = 1
-
 local game_clock = 0
--- Energy ans Rage Bars from Player
+-- Energy and Rage Bars from Player
 local bar_size_w = 650
 
 local actual_weapon = weapons.pistol
@@ -69,7 +64,17 @@ local actual_weapon = weapons.pistol
 local dust_particle = love.graphics.newImage("data/images/particles/dust/dust.png")
 local psystem = love.graphics.newParticleSystem(dust_particle, 5)
 
+local rain_particle = love.graphics.newImage("data/images/particles/rain/rain.png")
+local rain_psystem = love.graphics.newParticleSystem(rain_particle, 400)
+
 local mx, my = 0, 0
+
+local spawn_enemies_ini_time = 20
+local spawn_enemies_time = 20
+local spawn_enemies_speed = 10
+local spawn_enemies_rate = 1
+
+local collision = false
 
 function scene.load()
 	Joysticks = love.joystick.getJoysticks()
@@ -80,6 +85,7 @@ function scene.load()
 	shakeDuration = 0
 
 	Font = love.graphics.newFont("data/fonts/quadrangle.otf", 15)
+	Font_medium = love.graphics.newFont("data/fonts/quadrangle.otf", 12)
 	Font_small = love.graphics.newFont("data/fonts/quadrangle.otf", 10)
 
 	Paused_on_sound = love.audio.newSource("data/sfx/effects/pause_on.wav", "static")
@@ -100,16 +106,17 @@ function scene.load()
 
 	--Start Creation of Enemies
 	for e = 1, 5 do
-		local enemy = Enemy()
+		local enemy = Enemy(Player.x, Player.y)
 		table.insert(objects, enemy)
 		table.insert(enemy_group, enemy)
 	end
 
 	--Creation of Trees
-	for t = 1, 1 do
-		local tree = Tree()
-		table.insert(objects, tree)
-		table.insert(tree_group, tree)
+	for t = 1, 5 do
+		Tree_noob = Tree()
+		table.insert(objects, Tree_noob)
+		table.insert(tree_group, Tree_noob)
+		--print(Tree_noob.collision_area.x, Tree_noob.collision_area.y)
 	end
 
 	--Creation of PowerUps
@@ -139,6 +146,23 @@ function scene.load()
 	psystem:setLinearAcceleration(-20, -20, 20, 20)
 	psystem:setSizes(0.2, 0.4, 0.6)
 	psystem:setSpinVariation(0.5)
+
+--Rain Particle System
+	rain_psystem:setParticleLifetime(2, 5)
+	--psystem:setLinearAcceleration(0, 0, 0, 0)
+	rain_psystem:setColors(255, 255, 255, 50, 255, 255, 255, 0) -- Fade out.
+	rain_psystem:setRotation(0.3, 0.3)
+	--psystem:setRadialAcceleration(3, 3)
+	--rain_psystem:setSpread(1)
+	--psystem:setOffset(-1, 3)
+	--psystem:setLinearDamping(0, 5)
+	rain_psystem:setEmissionArea("uniform", 960, 200, 0, true)
+	rain_psystem:setDirection(2)
+	--rain_psystem:setEmissionRate(200)
+	--psystem:setSizeVariation(1)
+	--rain_psystem:setLinearAcceleration(-20, -20, 20, 20)
+	rain_psystem:setSizes(0.3, 0.5, 0.8)
+	--rain_psystem:setSpinVariation(0.2)
 end
 
 function scene.update(dt)
@@ -146,25 +170,33 @@ function scene.update(dt)
     --GameCamera:move(dx/2, dy/2)
 	GameCamera:lockPosition(Player.x, Player.y)
 
-	--GameCamera:rotate(dt)
-
-	-- if Joystick and Joystick:isGamepadDown("a") then
-	-- 	print("A button pressed")
-	-- end
-	-- if Joystick and Joystick:isGamepadDown("dpleft") then
-	-- 	print("Game Pad Left pressed")
-	-- end
-
-	-- local joy_x_left = Joystick:getGamepadAxis("leftx")
-	-- local joy_y_left = Joystick:getGamepadAxis("lefty")
-	-- print(joy_x_left, joy_y_left)
-
- -- Decrease shake timer if active
-    if shakeTimer > 0 then
-        shakeTimer = shakeTimer - dt
-    end
-
 	if not game_paused then
+		-- Enemies Creation at Time
+		-- if spawn_enemies_time <= 0 then
+		-- --Start Creation of Enemies
+		-- 	for e = 1, spawn_enemies_rate do
+		-- 		local enemy = Enemy(Player.x, Player.y)
+		-- 		table.insert(objects, enemy)
+		-- 		table.insert(enemy_group, enemy)
+		-- 	end
+		-- 	spawn_enemies_time = spawn_enemies_ini_time
+		-- else
+		-- 	spawn_enemies_time = spawn_enemies_time - spawn_enemies_speed * dt
+		-- end
+
+		-- Increase Enemy Number/Dificulty
+		if Player.kills == 50 then
+			spawn_enemies_rate = 2
+		end
+		if Player.kills == 100 then
+			spawn_enemies_rate = 3
+		end
+
+		-- Decrease shake timer if active
+		if shakeTimer > 0 then
+			shakeTimer = shakeTimer - dt
+		end
+
 		--Start Game Timer
 		game_clock = game_clock + dt
 
@@ -241,15 +273,15 @@ function scene.update(dt)
 			end
 		end
 
-		--If Enemy Dies remove it from enemy_group
+		--If Enemy Dies remove it from enemy_group and add a void energy
 		for i, enemy in ipairs(enemy_group) do
 			if enemy.active == false then
-				-- Create Rage Energy PowerUp at Enemy Position
-				local rage_energy = Rage()
-				rage_energy.x = enemy.x
-				rage_energy.y = enemy.y
-				table.insert(objects, rage_energy)
-				table.insert(rage_energy_group, rage_energy)
+				-- Create Void Energy PowerUp at Enemy Position
+				local void_energy = Void()
+				void_energy.x = enemy.x
+				void_energy.y = enemy.y
+				table.insert(objects, void_energy)
+				table.insert(void_energy_group, void_energy)
 
 				table.remove(enemy_group, i)
 				Player.kills = Player.kills + 1
@@ -274,7 +306,7 @@ function scene.update(dt)
 				end
 			end
 		end
-
+		--print(Player.hurt)
 		-- Enemy Collision with player (Only Ground collision Rectangle)
 		for e, enemy in ipairs(enemy_group) do
 			if enemy.dead == false then
@@ -286,8 +318,22 @@ function scene.update(dt)
 						Player.life = 0
 						Player.dead = true
 					end
-				else
-					Player.hurt = false
+				end
+			end
+		end
+		--Enemy collision with Rage Area Attack
+		for e, enemy in ipairs(enemy_group) do
+			if enemy.dead == false then
+				if Detect_collision(enemy.body_collision_area, Player.rage_area) then
+					if not enemy.dead then
+						if Player.rage_attack then
+							enemy_hurt:stop()
+							--print("acertou inimigo")
+							enemy.energy = enemy.energy - Player.rage_power
+							enemy.hurt = true
+							enemy_hurt:play()
+						end
+					end
 				end
 			end
 		end
@@ -320,50 +366,120 @@ function scene.update(dt)
 			end
 		end
 
-		--Rage Collision with player
-		for r, rage_energy in ipairs(rage_energy_group) do
-			if Detect_collision(Player.collision_area, rage_energy.collision_area) then
+		--Void Energy Collision with player
+		for r, void_energy in ipairs(void_energy_group) do
+			if Detect_collision(Player.collision_area, void_energy.collision_area) then
 				powerup:stop()
-				print("Rage Energy Collected:")
+				print("Void Energy Collected:")
 				powerup:play()
-				if Player.rage < Player.rage_total then
-					Player.rage = Player.rage + 1
-				end
+				Player.void_energy = Player.void_energy + 1
 
-				rage_energy.active = false
-				--Remove Rage Energy from groups
-				table.remove(rage_energy_group, r)
+				void_energy.active = false
+				--Remove Void Energy from groups
+				table.remove(void_energy_group, r)
 				for re, obj in ipairs(objects) do
-					if obj == rage_energy then
-						if rage_energy.active == false then
-							print("Removing Rage Energy from objects")
+					if obj == void_energy then
+						if void_energy.active == false then
+							print("Removing Void Energy from objects")
 							table.remove(objects, re)
 						end
 					end
 				end
 			end
 		end
+		local location
+		local tolerance = 2
+		-- -- Tree Collision with player (Only Ground collision Rectangle)
+		for t, tree in ipairs(tree_group) do
+			local sensor_detection =  Detect_collision(Player.collision_area, tree.collision_sensor)
+			local detect_collision =  Detect_collision(Player.collision_area, tree.collision_area)
+			if sensor_detection and not detect_collision then
+				--print("not collision")
+				Player.move_player_left = 1
+				Player.move_player_right = 1
+				Player.move_player_up = 1
+				Player.move_player_down = 1
+
+			elseif sensor_detection and detect_collision then
+				--print(Player.collision_area.x, Player.collision_area.y)
+				if Player.collision_area.y < tree.collision_area.y + tree.collision_area.height - tolerance and Player.collision_area.y + Player.collision_area.height > tree.collision_area.y + tolerance then
+					location = "horizontal"
+				elseif Player.collision_area.x < tree.collision_area.x + tree.collision_area.width - tolerance and Player.collision_area.x + Player.collision_area.width > tree.collision_area.x + tolerance then
+					location = "vertical"
+				else
+					location = ""
+				end
+				if location == "horizontal" then
+					-- Colliding right
+					if Player.collision_area.x > tree.collision_area.x then
+						if Player.collision_area.x <= tree.collision_area.x + tree.collision_area.width then
+							Player.move_player_left = 0
+							Player.move_player_right = 1
+							Player.move_player_up = 1
+							Player.move_player_down = 1
+						end
+					else
+						-- Colliding left
+						if Player.collision_area.x + Player.collision_area.width >= tree.collision_area.x then
+							Player.move_player_right = 0
+							Player.move_player_left = 1
+							Player.move_player_up = 1
+							Player.move_player_down = 1
+						end
+					end
+
+				elseif location == "vertical" then
+					if Player.collision_area.y > tree.collision_area.y then
+						-- Colliding bottom
+						if Player.collision_area.y <= tree.collision_area.y + tree.collision_area.height then
+							Player.move_player_left = 1
+							Player.move_player_right = 1
+							Player.move_player_up = 0
+							Player.move_player_down = 1
+						end
+					else
+					-- Colliding top
+						if Player.collision_area.y + Player.collision_area.height >= tree.collision_area.y then
+							Player.move_player_right = 1
+							Player.move_player_left = 1
+							Player.move_player_up = 1
+							Player.move_player_down = 0
+						end
+					end
+				end
+			end
+		end
+
+				
+
 		-- Send player position to the shaders file
 		shaders.light:send("playerPosition", {window_size_w / 2, window_size_h / 2})
-	end
 
-	--Emit dust particles at player position
-	psystem:update(dt)
-	if Player.move_x ~= 0 or Player.move_y ~= 0 then
-		psystem:start()
-	else
-		psystem:stop()
+		--Emit dust particles at player position
+		psystem:update(dt)
+		if Player.movement_x ~= 0 or Player.movement_y ~= 0 then
+			psystem:start()
+		else
+			psystem:stop()
+		end
+		psystem:setRotation(0, 6.28)
+		psystem:setSpeed(1, 120)
+		psystem:setPosition(Player.x, Player.y + 15)
+		psystem:emit(1)
+
+		rain_psystem:start()
+		rain_psystem:update(dt)
+		rain_psystem:setSpeed(300, 600)
+		rain_psystem:setPosition(Player.x - window_size_w / 2, Player.y - 720)
+		rain_psystem:emit(1)
 	end
-	psystem:setRotation(0, 6.28)
-	psystem:setSpeed(1, 120)
-	psystem:setPosition(Player.x, Player.y + 15)
-	psystem:emit(1)
 end
 
 function scene.draw()
  	love.graphics.push() -- Save current drawing state for Shake Effect	
-	mx, my = love.mouse.getPosition()
-
+	if not game_paused then
+		mx, my = love.mouse.getPosition()
+	end
 	GameCamera:attach()
 
 	-- Apply screen shake if timer is active
@@ -391,28 +507,43 @@ function scene.draw()
 			love.graphics.draw(object.image, object.x, object.y, 0, 1, 1, object.size_w / 2, object.size_h - object.size_h / 4)
 		end
 	end
+	-- Weapon direction
+	if mx > window_size_w / 2 then
+		love.graphics.draw(Player.weapon.image, Player.x, Player.y, Player.weapon_angle, 1, 1, Player.weapon.image:getWidth()/2, Player.weapon.image:getHeight()/2)
+	else
+		love.graphics.draw(Player.weapon.image, Player.x, Player.y, Player.weapon_angle, 1, -1, Player.weapon.image:getWidth()/2, Player.weapon.image:getHeight()/2)
+	end
+	-- Player direction
+	if mx > window_size_w / 2 then
+		Player.image = Player.player_img_right
+	else
+		Player.image = Player.player_img_left
+	end
 
 	love.graphics.draw(psystem)
+	love.graphics.draw(rain_psystem)
 
 	-- Draw Collision Lines and Guides ---------------------------------
-	Collision_rectangles()
+	Collision_rectangles(true) -- true or false
 
 	GameCamera:detach()
 
-	--Circle Weapon Range of player
-	love.graphics.setColor(1, 0, 0, 0.2)
-	love.graphics.circle("line", window_size_w / 2, window_size_h / 2, Player.weapon.range, 30)
-	love.graphics.setColor(1, 1, 1, 1)
+	if Player.draw_collision then
+		--Circle Weapon Range of player
+		love.graphics.setColor(1, 1, 1, 0.2)
+		love.graphics.circle("line", window_size_w / 2, window_size_h / 2, Player.weapon.range, 30)
+		love.graphics.setColor(1, 1, 1, 1)
 
-	--Circle start shot
-	love.graphics.setColor(0, 0, 1, 0.2)
-	love.graphics.circle("line", window_size_w / 2, window_size_h / 2, 20, 30)
-	love.graphics.setColor(1, 1, 1, 1)
+		--Circle start shot
+		love.graphics.setColor(0, 0, 1, 0.2)
+		love.graphics.circle("line", window_size_w / 2, window_size_h / 2, 20, 30)
+		love.graphics.setColor(1, 1, 1, 1)
 
-	--Line test of sight of player
-	love.graphics.setColor(1, 1, 1, 0.2)
-	love.graphics.line(window_size_w / 2, window_size_h / 2, mx, my)
-	love.graphics.setColor(1, 1, 1, 1)
+		--Line test of sight of player
+		love.graphics.setColor(1, 1, 1, 0.2)
+		love.graphics.line(window_size_w / 2, window_size_h / 2, mx, my)
+		love.graphics.setColor(1, 1, 1, 1)
+	end
 
 	love.graphics.pop() -- Restore drawing state for Shake Effect
 
@@ -445,10 +576,16 @@ function scene.draw()
 	love.graphics.rectangle("fill", 50, window_size_h - 692, bar_size_w * (Player.rage / Player.rage_total), 5)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	-- Draws Game Time and Kills Counter
+	-- Draws Game Time, Kills and Void Particles Counter
 	love.graphics.setFont(Font_small)
-	love.graphics.print("Time: " .. FormatTime(game_clock), 705, window_size_h + (10 - window_size_h))
-	love.graphics.print("Kills: "..Player.kills, 705, window_size_h + (23 - window_size_h))
+	love.graphics.print("Time:", 905, window_size_h + (10 - window_size_h))
+	love.graphics.print(FormatTime(game_clock), 902, window_size_h + (23 - window_size_h))
+
+	love.graphics.setFont(Font_small)
+	love.graphics.print("Kills: "..Player.kills, 705, window_size_h + (10 - window_size_h))
+	love.graphics.print("Void Energy: "..Player.void_energy, 705, window_size_h + (23 - window_size_h))
+
+	-- Draws the Life ans Rage Bar Titles
 	love.graphics.print("Life:", 10, window_size_h + (10 - window_size_h))
 	love.graphics.print("Rage:", 10, window_size_h + (23 - window_size_h))
 
@@ -476,24 +613,39 @@ function Fps_counter()
 		love.graphics.setColor(0, 0, 0, 0)
 end
 
-function Collision_rectangles()
---Draw Collision Rectangles
+function Collision_rectangles(show)
+	local rects_alpha
+	if show then
+		rects_alpha = 1
+	else
+		rects_alpha = 0
+	end
+
+	--Draw Collision Rectangles
+	Player.draw_collision_alpha = rects_alpha
 	Player:draw()
+
 	for i, enemy in ipairs(enemy_group) do
+		enemy.draw_collision_alpha = rects_alpha
 		enemy:draw()
 	end
 	for t, tree in ipairs(tree_group) do
+		tree.draw_collision_alpha = rects_alpha
 		tree:draw()
 	end
 	for s, player_shot in ipairs(shot_group) do
+		player_shot.draw_collision_alpha = rects_alpha
 		player_shot:draw()
 	end
 	for p, power_up in ipairs(power_up_group) do
+		power_up.draw_collision_alpha = rects_alpha
 		power_up:draw()
 	end
-	for r, rage_energy in ipairs(rage_energy_group) do
-		rage_energy:draw()
+	for r, void_energy in ipairs(void_energy_group) do
+		void_energy.draw_collision_alpha = rects_alpha
+		void_energy:draw()
 	end
+
 end
 
 function Detect_collision(a, b)
@@ -514,11 +666,6 @@ function Detect_collision(a, b)
         and a_top < b_bottom
 end
 
-function love.joystickpressed(joystick, button)
-	print(joystick, joystick:getName(), joystick:getID(), button)
-
-end
-
 function love.keypressed(key)
     -- Toggle the pause state when 'p' is pressed
     if key == "p" then
@@ -530,9 +677,13 @@ function love.keypressed(key)
     	end
         game_paused = not game_paused
     end
-	if key == "l" then
-		StartShake(0.5, 10) -- Shake for 0.5 seconds with intensity 10
-    end
+	-- if key == "l" then
+	-- 	StartShake(0.5, 10) -- Shake for 0.5 seconds with intensity 10
+    -- end
+	if love.keyboard.isDown("escape") then
+		love.window.close()
+		love.event.quit()
+	end
 end
 
 function love.mousepressed(x, y, button, istouch)
@@ -561,12 +712,12 @@ function love.mousepressed(x, y, button, istouch)
    	end
 
    	if button == 2 then
-		if Player.rage > 0 then
-			Player.rage = Player.rage - 1
-		else
-			Player.rage = 0
+		if Player.rage >= Player.rage_charge and Player.rage_attack == false then --Only works if there's charge to use
+			Player.rage = Player.rage - Player.rage_charge
+			Player.rage_attack = true
+			StartShake(0.5, 5) -- Shake for 0.5 seconds with intensity 5
 		end
-   		print(Player.rage)
+   		--print(Player.rage)
    	end
 end
 

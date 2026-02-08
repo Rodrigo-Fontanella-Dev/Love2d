@@ -24,6 +24,7 @@ function Shot.new(self)
 	}
 	self.shot_distance = 0
 	self.active = true
+	self.draw_collision_alpha = 0
 end
 
 function Shot.update(self, dt)
@@ -39,17 +40,9 @@ function Shot.update(self, dt)
 end
 
 function Shot.draw(self)
-	love.graphics.setColor(1, 1, 0, 1)
+	love.graphics.setColor(1, 1, 0, self.draw_collision_alpha)
 	Collision_rect = love.graphics.rectangle("line", self.shot_collision_area.x , self.shot_collision_area.y, self.shot_collision_area.width, self.shot_collision_area.height)
-	love.graphics.setColor(1, 1, 1, 1)
-end
-
--- Shift when Player moves
-function Shot:shift(player_speed, move_x, move_y)
-	--print(player_speed, move_x, move_y)
-	self.move_x = move_x
-	self.move_y = move_y
-	self.player_speed = player_speed
+	love.graphics.setColor(1, 1, 1, self.draw_collision_alpha)
 end
 
 function Shot:start(angle, direction)

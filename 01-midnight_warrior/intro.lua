@@ -1,6 +1,6 @@
 local scene = {}
 
-local window_size_w, window_size_h = 1280,720 --fixed game resolution
+local window_size_w, window_size_h = 960,720 --fixed game resolution
 
 function scene.modify(flags)
 end

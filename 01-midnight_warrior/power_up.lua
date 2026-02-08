@@ -2,8 +2,8 @@ PowerUp = Object.extend(Object)
 
 function PowerUp.new(self)
 	self.image = love.graphics.newImage("data/images/power_ups/power_up.png")
-	self.x = love.math.random(0, 500)
-	self.y = love.math.random(0, 400)
+	self.x = love.math.random(0, 960)
+	self.y = love.math.random(0, 720)
 	self.size_w = self.image:getWidth()
 	self.size_h = self.image:getHeight()
 	self.move_x = 0
@@ -17,6 +17,7 @@ function PowerUp.new(self)
 	}
 	self.active = true
 	self.type = "life" --weapon, life, speed
+	self.draw_collision_alpha = 0
 end
 
 function PowerUp.update(self, dt)	
@@ -28,16 +29,11 @@ function PowerUp.update(self, dt)
 	self.collision_area.y = self.y - self.size_h / 2
 end
 
-function PowerUp:shift(player_speed, move_x, move_y)
-	--print(player_speed, move_x, move_y)
-	self.move_x = move_x
-	self.move_y = move_y
-	self.player_speed = player_speed
-end
-
 function PowerUp:draw(screen_shift_x, screen_shift_y)
-	love.graphics.setColor(1, 0, 0, 1)
+
+	love.graphics.setColor(1, 0, 0, self.draw_collision_alpha)
 	love.graphics.rectangle("line", self.collision_area.x , self.collision_area.y, self.collision_area.width, self.collision_area.height)
-	love.graphics.setColor(1, 1, 1, 1)
+	love.graphics.setColor(1, 1, 1, self.draw_collision_alpha)
+
 end
 
