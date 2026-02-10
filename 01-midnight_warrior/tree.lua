@@ -2,8 +2,8 @@ Tree = Object.extend(Object)
 
 function Tree.new(self)
 	self.image = love.graphics.newImage("data/images/trees/tree01.png")
-	self.x = love.math.random(0, 960)
-	self.y = love.math.random(0, 720)
+	self.x = love.math.random(-500, 1460)
+	self.y = love.math.random(-640, 1340)
 	self.size_w = self.image:getWidth()
 	self.size_h = self.image:getHeight()
 	self.move_x = 0
@@ -49,7 +49,7 @@ function Tree.update(self, dt)
 
 end
 
-function Tree.draw(self, screen_shift_x, screen_shift_y)
+function Tree.draw(self)
 
 	love.graphics.setColor(0, 1, 1, self.draw_collision_alpha)
 	love.graphics.rectangle("line", self.collision_area.x , self.collision_area.y, self.collision_area.width, self.collision_area.height)

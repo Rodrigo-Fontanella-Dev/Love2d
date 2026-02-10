@@ -5,10 +5,10 @@ weapons.weapon_list = {
 	pistol = {
 		name = "Pistol",
 		bullets = 5,
-		range = 150,
+		range = 250,
 		charge_time = 5,
 		damage = 1,
-		speed = 300,
+		speed = 600,
 		image_icon = love.graphics.newImage("data/images/weapons_icons/pistol.png"),
 		image = love.graphics.newImage("data/images/weapons/pistol.png")
 	},
@@ -20,7 +20,7 @@ weapons.weapon_list = {
 		range = 200,
 		charge_time = 5,
 		damage = 2,
-		speed = 250,
+		speed = 600,
 		image_icon = love.graphics.newImage("data/images/weapons_icons/automatic_rifle.png"),
 		image = love.graphics.newImage("data/images/weapons/automatic_rifle.png")
 	},
@@ -32,7 +32,7 @@ weapons.weapon_list = {
 		range = 250,
 		charge_time = 5,
 		damage = 5,
-		speed = 250,
+		speed = 650,
 		image_icon = love.graphics.newImage("data/images/weapons_icons/automatic_rifle_granade_launcher.png"),
 		image = love.graphics.newImage("data/images/weapons/automatic_rifle_granade_launcher.png")
 	},

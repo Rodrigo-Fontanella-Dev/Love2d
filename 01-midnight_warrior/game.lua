@@ -11,9 +11,7 @@ love.graphics.setDefaultFilter("nearest", "nearest")
 -- Library to create classes
 Object = require "data/libraries/classic"
 Camera = require "data/libraries/camera"
--- Bump = require "data/libraries/bump"
-
--- World = Bump.newWorld()
+--Sti = require "data/libraries/sti"
 
 require "enemy"
 require "player"
@@ -22,9 +20,25 @@ require "shot"
 require "power_up"
 require "void_energy"
 
+local game_maps = require "maps"
+local map = {}
+
+--Map Vars
+local map_w = 30 -- Size of the map
+local map_h = 30 -- Size of the map
+local tile_w = 100 -- Tile Size
+local tile_h = 100 -- Tile Size
+local map_x = 0 -- Start Position
+local map_y = 0 -- Start Position
+local map_offset_x = -(1500 - (window_size_w / 2) + 100) -- Shift Map Position -- Player in the center of map
+local map_offset_y = -(1500 - (window_size_h / 2) + 100) -- Shift Map Position -- Player in the center of map
+local map_display_w = 30 -- Number of tiles that will be displayed
+local map_display_h = 30 -- Number of tiles that will be displayed
+local map_limits = {left = -500, right = 1460, top = -640, bottom = 1340}
+
 local weapons = require "weapons"
 
-local shaders = require("shaders")
+local shaders = require "shaders"
 
 local objects = {}
 local mouse = {}
@@ -32,18 +46,14 @@ local angle_shot = 0
 local shot_direction = {}
 local shot = {}
 
-local player_group = {}
 local shot_group = {}
 local enemy_group = {}
 local tree_group = {}
 local power_up_group = {}
 local void_energy_group = {}
-local offset = {}
 local game_paused = false
 
 local collision_enemy = false
-local collision_tree = false
-local collision_tree2 = false
 local basic_shot = love.audio.newSource("data/sfx/effects/shot.wav", "static")
 local enemy_hurt = love.audio.newSource("data/sfx/effects/hurt.wav", "static")
 local powerup = love.audio.newSource("data/sfx/effects/powerup.wav", "static")
@@ -77,10 +87,21 @@ local spawn_enemies_rate = 1
 local collision = false
 
 function scene.load()
-	Joysticks = love.joystick.getJoysticks()
-    Joystick = Joysticks[1] -- Get the first joystick
+	-- Joysticks = love.joystick.getJoysticks()
+    -- Joystick = Joysticks[1] -- Get the first joystick
 	-- print(Joystick:getButtonCount( )) --11
 	-- print(Joystick:getAxisCount()) -- 6
+
+	Tile = {}
+	for i = 1, 2 do
+		Tile[i] = love.graphics.newImage("data/maps/map01_tile"..i..".png")
+	end
+	--print(Tile[1], Tile[2])
+	--print(game_maps, game_maps[1], game_maps[2])
+	for t, tiles in ipairs(game_maps[1]) do
+		--print(tiles)
+		table.insert(map, tiles)
+	end
 
 	shakeDuration = 0
 
@@ -112,7 +133,7 @@ function scene.load()
 	end
 
 	--Creation of Trees
-	for t = 1, 5 do
+	for t = 1, 40 do
 		Tree_noob = Tree()
 		table.insert(objects, Tree_noob)
 		table.insert(tree_group, Tree_noob)
@@ -127,8 +148,8 @@ function scene.load()
 		table.insert(objects, power_up)
 		table.insert(power_up_group, power_up)
 	end
-
-	Map = love.graphics.newImage("data/maps/map01.png")
+	--Create Map
+	--Map = Map()
 
 	--Particle System
 	psystem:setParticleLifetime(0.1, 0.8)
@@ -169,6 +190,7 @@ function scene.update(dt)
 	--local dx,dy = Player.x - GameCamera.x, Player.y - GameCamera.y
     --GameCamera:move(dx/2, dy/2)
 	GameCamera:lockPosition(Player.x, Player.y)
+	--Map:update(dt)
 
 	if not game_paused then
 		-- Enemies Creation at Time
@@ -387,70 +409,16 @@ function scene.update(dt)
 				end
 			end
 		end
-		local location
-		local tolerance = 2
+
 		-- -- Tree Collision with player (Only Ground collision Rectangle)
 		for t, tree in ipairs(tree_group) do
-			local sensor_detection =  Detect_collision(Player.collision_area, tree.collision_sensor)
-			local detect_collision =  Detect_collision(Player.collision_area, tree.collision_area)
-			if sensor_detection and not detect_collision then
-				--print("not collision")
-				Player.move_player_left = 1
-				Player.move_player_right = 1
-				Player.move_player_up = 1
-				Player.move_player_down = 1
-
-			elseif sensor_detection and detect_collision then
-				--print(Player.collision_area.x, Player.collision_area.y)
-				if Player.collision_area.y < tree.collision_area.y + tree.collision_area.height - tolerance and Player.collision_area.y + Player.collision_area.height > tree.collision_area.y + tolerance then
-					location = "horizontal"
-				elseif Player.collision_area.x < tree.collision_area.x + tree.collision_area.width - tolerance and Player.collision_area.x + Player.collision_area.width > tree.collision_area.x + tolerance then
-					location = "vertical"
-				else
-					location = ""
-				end
-				if location == "horizontal" then
-					-- Colliding right
-					if Player.collision_area.x > tree.collision_area.x then
-						if Player.collision_area.x <= tree.collision_area.x + tree.collision_area.width then
-							Player.move_player_left = 0
-							Player.move_player_right = 1
-							Player.move_player_up = 1
-							Player.move_player_down = 1
-						end
-					else
-						-- Colliding left
-						if Player.collision_area.x + Player.collision_area.width >= tree.collision_area.x then
-							Player.move_player_right = 0
-							Player.move_player_left = 1
-							Player.move_player_up = 1
-							Player.move_player_down = 1
-						end
-					end
-
-				elseif location == "vertical" then
-					if Player.collision_area.y > tree.collision_area.y then
-						-- Colliding bottom
-						if Player.collision_area.y <= tree.collision_area.y + tree.collision_area.height then
-							Player.move_player_left = 1
-							Player.move_player_right = 1
-							Player.move_player_up = 0
-							Player.move_player_down = 1
-						end
-					else
-					-- Colliding top
-						if Player.collision_area.y + Player.collision_area.height >= tree.collision_area.y then
-							Player.move_player_right = 1
-							Player.move_player_left = 1
-							Player.move_player_up = 1
-							Player.move_player_down = 0
-						end
-					end
-				end
+			-- Player collision movement
+			Player.move_player_left, Player.move_player_right, Player.move_player_up, Player.move_player_down = Collision_with_trees(Player.collision_area, tree.collision_area, tree.collision_sensor, Player.move_player_left, Player.move_player_right, Player.move_player_up, Player.move_player_down)
+			-- Enemy collision movement
+			for e, enemy in ipairs(enemy_group) do
+				enemy.move_enemy_left, enemy.move_enemy_right, enemy.move_enemy_up, enemy.move_enemy_down = Collision_with_trees(enemy.collision_area, tree.collision_area, tree.collision_sensor, enemy.move_enemy_left, enemy.move_enemy_right, enemy.move_enemy_up, enemy.move_enemy_down)
 			end
 		end
-
-				
 
 		-- Send player position to the shaders file
 		shaders.light:send("playerPosition", {window_size_w / 2, window_size_h / 2})
@@ -480,6 +448,7 @@ function scene.draw()
 	if not game_paused then
 		mx, my = love.mouse.getPosition()
 	end
+
 	GameCamera:attach()
 
 	-- Apply screen shake if timer is active
@@ -493,11 +462,11 @@ function scene.draw()
 	if game_paused then
 		love.graphics.setShader(shaders.greyscale)
 	end
-
+	-- Bright Shader
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.rectangle("fill", 0, 0, window_size_w, window_size_h)
 
-	love.graphics.draw(Map, 0, 0)
+	Draw_map()
 
 	-- Loop to Draw all Objects	
 	for i, object in ipairs(objects) do
@@ -739,6 +708,79 @@ function Rubber_band(dx,dy)
     local dt = love.timer.getDelta()
     return dx*dt, dy*dt
 end
+
+function Draw_map()
+   for y=1, map_display_h do
+      for x=1, map_display_w do
+         love.graphics.draw(
+            Tile[map[y+map_y][x+map_x]],
+            (x*tile_w)+map_offset_x,
+            (y*tile_h)+map_offset_y)
+      end
+   end
+end
+
+function Collision_with_trees(actor_collision_area, tree_collision_area, tree_collision_sensor, actor_move_left, actor_move_right, actor_move_up, actor_move_down)
+	local location
+	local tolerance = 2
+	local sensor_detection =  Detect_collision(actor_collision_area, tree_collision_sensor)
+	local detect_collision =  Detect_collision(actor_collision_area, tree_collision_area)
+	if sensor_detection and not detect_collision then
+		--print("not collision")
+		actor_move_left = 1
+		actor_move_right = 1
+		actor_move_up = 1
+		actor_move_down = 1
+	elseif sensor_detection and detect_collision then
+		if actor_collision_area.y < tree_collision_area.y + tree_collision_area.height - tolerance and actor_collision_area.y + actor_collision_area.height > tree_collision_area.y + tolerance then
+			location = "horizontal"
+		elseif actor_collision_area.x < tree_collision_area.x + tree_collision_area.width - tolerance and actor_collision_area.x + actor_collision_area.width > tree_collision_area.x + tolerance then
+			location = "vertical"
+		else
+			location = ""
+		end
+		if location == "horizontal" then
+			-- Colliding right
+			if actor_collision_area.x > tree_collision_area.x then
+				if actor_collision_area.x <= tree_collision_area.x + tree_collision_area.width then
+					actor_move_left = 0
+					actor_move_right = 1
+					actor_move_up = 1
+					actor_move_down = 1
+				end
+			else
+				-- Colliding left
+				if actor_collision_area.x + actor_collision_area.width >= tree_collision_area.x then
+					actor_move_right = 0
+					actor_move_left = 1
+					actor_move_up = 1
+					actor_move_down = 1
+				end
+			end
+		elseif location == "vertical" then
+			if actor_collision_area.y > tree_collision_area.y then
+				-- Colliding bottom
+				if actor_collision_area.y <= tree_collision_area.y + tree_collision_area.height then
+					actor_move_left = 1
+					actor_move_right = 1
+					actor_move_up = 0
+					actor_move_down = 1
+				end
+			else
+			-- Colliding top
+				if actor_collision_area.y + actor_collision_area.height >= tree_collision_area.y then
+					actor_move_right = 1
+					actor_move_left = 1
+					actor_move_up = 1
+					actor_move_down = 0
+				end
+			end
+		end
+	end
+	return actor_move_left, actor_move_right, actor_move_up, actor_move_down
+end
+
+
 
 
 return scene

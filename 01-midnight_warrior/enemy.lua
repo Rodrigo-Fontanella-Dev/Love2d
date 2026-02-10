@@ -10,8 +10,10 @@ function Enemy.new(self, player_x, player_y)
 	self.player_position[1] = player_y
 	self.enemy = "enemy"
 	self.image = love.graphics.newImage("data/images/enemy/contaminated_48x48.png")
-	self.x = love.math.random(player_x - window_size_w / 2, player_x + window_size_w / 2)
-	self.y = love.math.random(player_y - window_size_h / 2, player_y + window_size_h / 2)
+	--self.x = love.math.random(player_x - window_size_w / 2, player_x + window_size_w / 2)
+	--self.y = love.math.random(player_y - window_size_h / 2, player_y + window_size_h / 2)
+	self.x = love.math.random(-500, 1460)
+	self.y = love.math.random(-640, 1340)
 	self.speed = 10
 	self.direction = {}
 	self.direction[0] = 1
@@ -64,6 +66,11 @@ function Enemy.new(self, player_x, player_y)
 	self.slime_duration = 5
 	self.generate_slime = false
 	self.draw_collision_alpha = 0
+
+	self.move_enemy_left = 1
+	self.move_enemy_right = 1
+	self.move_enemy_up = 1
+	self.move_enemy_down = 1
 end
 
 -- Go for Player
@@ -71,8 +78,8 @@ function Enemy.update(self, dt)
 
 	-- Enemy movement test
 	--       { This block is the move}  {This block is the move correction from player move}	
-	self.x = self.x + self.speed * self.direction[0] * dt
-	self.y = self.y + self.speed * self.direction[1] * dt
+	self.x = self.x + self.speed * self.direction[0] * dt * self.move_enemy_left * self.move_enemy_right
+	self.y = self.y + self.speed * self.direction[1] * dt * self.move_enemy_up * self.move_enemy_down
 
 	--Update Collision Areas
 	self.collision_area.x = self.x - self.size_w / 4 - 3
